@@ -2,3 +2,7 @@ streamlit
 scikit-learn
 joblib
 numpy
+streamlit
+scikit-learn==1.3.2
+joblib
+pandas
