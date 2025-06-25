@@ -1,48 +1,29 @@
-
 import streamlit as st
 import joblib
-import numpy as np
 
-# Load model and components
-model = joblib.load("final_referral_model.pkl")
+# تحميل الملفات
+model = joblib.load("final_referral_model_FIXED.pkl")
 vectorizer = joblib.load("final_tfidf_vectorizer.pkl")
 label_encoder = joblib.load("final_label_encoder.pkl")
 
-# Risk keywords for alerts
-risk_keywords = ["seizure", "mass", "unconscious", "bleeding", "paralysis", "loss of vision", "rapid deterioration"]
+st.title("AI Referral Decision Support System")
+st.markdown("This system decides whether the patient should be referred **inside** or **outside** the hospital.")
 
-st.title("🧠 Smart Referral Decision Support System")
-st.markdown("Analyze patient case reports and receive intelligent referral recommendations with alerts.")
+# إدخال المستخدم
+user_input = st.text_area("Enter the medical report:")
 
-# Inputs
-referral_note = st.text_area("🔍 Enter Referral Note", height=150)
-specialty = st.text_input("🏥 Medical Specialty Required")
-hospital = st.text_input("🏨 Current Hospital")
-repeat_visit = st.checkbox("🔁 Has the patient visited recently (past 30 days)?")
-
-if st.button("Analyze Case"):
-    if not referral_note or not specialty or not hospital:
-        st.warning("Please complete all fields.")
+if st.button("Predict Referral Type"):
+    if user_input.strip() == "":
+        st.warning("Please enter a valid medical report.")
     else:
-        full_text = referral_note + " " + specialty + " " + hospital
-        vectorized_text = vectorizer.transform([full_text])
+        # تحويل النص إلى أرقام
+        X = vectorizer.transform([user_input])
+        prediction = model.predict(X)
+        label = label_encoder.inverse_transform(prediction)[0]
 
-        # Risk detection
-        keyword_alert = any(kw in referral_note.lower() for kw in risk_keywords)
-        alert_flag = int(keyword_alert)
-        repeat_flag = int(repeat_visit)
-
-        # Combine all features
-        alerts = np.array([[alert_flag, repeat_flag]])
-        final_input = np.hstack([vectorized_text.toarray(), alerts])
-
-        # Predict
-        prediction = model.predict(final_input)
-        decision = label_encoder.inverse_transform(prediction)[0]
-
-        st.subheader(f"✅ AI Decision: **{decision}**")
-
-        if keyword_alert:
-            st.error("⚠️ Alert: Critical symptoms detected in referral note.")
-        if repeat_flag:
-            st.warning("🔁 Notice: Patient has repeated hospital visits recently.")
+        if label == "داخل":
+            st.success("✅ Recommendation: Refer **inside** the hospital.")
+        elif label == "خارج":
+            st.warning("⚠️ Recommendation: Refer **outside** the hospital.")
+        else:
+            st.info(f"Recommendation: {label}")
