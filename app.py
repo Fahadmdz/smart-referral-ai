@@ -1,29 +1,33 @@
 import streamlit as st
 import joblib
 
-# تحميل الملفات
-model = joblib.load("final_referral_model_FIXED.pkl")
-vectorizer = joblib.load("final_tfidf_vectorizer.pkl")
-label_encoder = joblib.load("final_label_encoder.pkl")
+# Load model components
+@st.cache_resource
+def load_components():
+    model = joblib.load("final_referral_model_FIXED.pkl")
+    vectorizer = joblib.load("final_tfidf_vectorizer.pkl")
+    label_encoder = joblib.load("final_label_encoder.pkl")
+    return model, vectorizer, label_encoder
 
-st.title("AI Referral Decision Support System")
-st.markdown("This system decides whether the patient should be referred **inside** or **outside** the hospital.")
+model, vectorizer, label_encoder = load_components()
 
-# إدخال المستخدم
-user_input = st.text_area("Enter the medical report:")
+# App title
+st.title("AI Medical Referral Assistant")
+st.markdown("Predict the **department or referral** based on a medical report.")
 
-if st.button("Predict Referral Type"):
-    if user_input.strip() == "":
-        st.warning("Please enter a valid medical report.")
+# Text input
+input_text = st.text_area("Enter the medical report/description here:", height=200)
+
+if st.button("Predict Referral"):
+    if not input_text.strip():
+        st.warning("Please enter some text to get a prediction.")
     else:
-        # تحويل النص إلى أرقام
-        X = vectorizer.transform([user_input])
-        prediction = model.predict(X)
-        label = label_encoder.inverse_transform(prediction)[0]
+        # Transform and predict
+        text_vec = vectorizer.transform([input_text])
+        prediction = model.predict(text_vec)
+        predicted_label = label_encoder.inverse_transform(prediction)[0]
 
-        if label == "داخل":
-            st.success("✅ Recommendation: Refer **inside** the hospital.")
-        elif label == "خارج":
-            st.warning("⚠️ Recommendation: Refer **outside** the hospital.")
-        else:
-            st.info(f"Recommendation: {label}")
+        # Output
+        st.success(f"🔍 **Predicted Referral Department:** {predicted_label}")
+
+
